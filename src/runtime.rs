@@ -1,8 +1,9 @@
-// Better F1 Reborn ported to Horizon (slice 1: HUD state machine core).
+// Better F1 Reborn ported to Horizon (1:1 core, mod API layout).
 // Upstream: github.com/MovTery/Better-F1-Reborn (commit 62824ad, 2026-07-21), MIT (c) 2024 MovTery.
 // Ported 1:1 from common/src/main/java/com/movtery/betterf1.
 
 use serde::{Deserialize, Serialize};
+use std::sync::{Mutex, OnceLock};
 
 /// com.movtery.betterf1.client.HUDState: the three-state F1 cycle.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -61,8 +62,48 @@ impl BetterF1 {
     }
 }
 
+// ----- BetterF1.java's live game-side state -----
+// Upstream's `public static HUDState state` on the BetterF1 class; client_setup
+// is its 1:1 initializer and game glue reads it.
+static INSTANCE: OnceLock<Mutex<BetterF1>> = OnceLock::new();
+
+pub fn init() {
+    INSTANCE.get_or_init(|| Mutex::new(BetterF1::default()));
+}
+
+pub fn state() -> HudState {
+    INSTANCE
+        .get()
+        .and_then(|cell| cell.lock().ok())
+        .map(|f1| f1.state)
+        .unwrap_or(HudState::AllVisible)
+}
+
+/// KeyboardMixin.onF1Key through the global state: advance the state, then
+/// return the desired hideGui value for game glue to apply (the pinned API's
+/// input notice is post-handling and non-cancellable, so vanilla's own toggle
+/// cannot be cancelled here).
+pub fn on_f1_key() -> bool {
+    INSTANCE
+        .get()
+        .and_then(|cell| cell.lock().ok())
+        .map(|mut f1| f1.on_f1_key())
+        .unwrap_or(false)
+}
+
 #[cfg(test)]
 mod tests {
+    use std::sync::{Mutex, OnceLock};
+
+    #[test]
+    fn global_state_starts_all_visible_then_advances() {
+        // one sequential test: the tests share the process-global INSTANCE,
+        // so parallel tests would race on its state
+        init();
+        assert_eq!(state(), HudState::AllVisible);
+        assert_eq!(on_f1_key(), true);
+        assert_eq!(state(), HudState::NoHud);
+    }
     use super::*;
 
     #[test]

@@ -1,0 +1,35 @@
+id = "better_f1_reborn"
+name = "Better F1 Reborn"
+version = "1.0.0"
+description = """A Rust port of [Better F1 Reborn](https://github.com/MovTery/Better-F1-Reborn)
+(MovTery, MIT): the three-state F1 cycle (all visible, no HUD, all hidden),
+carried 1:1.
+
+Upstream has no config, so there is nothing to register as settings; the 1:1
+core (HUDState's cycle and its hideGui and hand-render mappings,
+BetterF1.state) runs inside the mod API wiring, initialized 1:1 with
+upstream's `state = ALL_VISIBLE`.
+
+The F1 keybind itself waits on a cancellable input surface in the mod API:
+upstream's KeyboardMixin cancels vanilla's hideGui toggle and sets the
+redirected value, while the pinned API's input notice is post-handling and
+non-cancellable, so the port tracks the desired hideGui value for game glue.
+The hand-render redirects need a render surface.
+
+Pinned to Horizon f00125f61f794aaa3d4e950d301f353b35b6ee3d and
+horizon-mixins e59da9094f0c2fdda6c627fe9eff22dec6a906f0; exact 1:1 Rust port
+tested against those revisions.
+
+Licence: MIT. Upstream (c) 2024 MovTery.
+Source: https://github.com/Sparticle62ops/horizon-better-f1-reborn
+"""
+authors = ["MovTery", "sparticle"]
+license = "MIT"
+homepage = "https://github.com/Sparticle62ops/horizon-better-f1-reborn"
+api = "0.2"
+side = "client"
+
+[native]
+game = "26.3"
+horizon = "f00125f61f794aaa3d4e950d301f353b35b6ee3d"
+mixins = "e59da9094f0c2fdda6c627fe9eff22dec6a906f0"
